@@ -1,1 +1,34 @@
 
+import java.sql.Types;
+
+/**
+ * 判断 JDBC DATA_TYPE 是否为数字或字符串
+ */
+private String checkCategory(int dataType) {
+    switch (dataType) {
+        // --- 数字类型 ---
+        case Types.BIT:
+        case Types.TINYINT:
+        case Types.SMALLINT:
+        case Types.INTEGER:
+        case Types.BIGINT:
+        case Types.FLOAT:
+        case Types.REAL:
+        case Types.DOUBLE:
+        case Types.NUMERIC:
+        case Types.DECIMAL:
+            return "数字";
+
+        // --- 字符串类型 ---
+        case Types.CHAR:
+        case Types.VARCHAR:
+        case Types.LONGVARCHAR:
+        case Types.NCHAR:
+        case Types.NVARCHAR:
+        case Types.LONGNVARCHAR:
+            return "字符串";
+
+        default:
+            return "其他类型";
+    }
+}
