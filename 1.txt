@@ -1,25 +1,40 @@
-session.doWork(connection -> {
-    DatabaseMetaData metaData = connection.getMetaData();
-    
-    // 1. 先获取主键列名
-    List<String> pkColumnNames = new ArrayList<>();
-    try (ResultSet rsPk = metaData.getPrimaryKeys(null, null, tableName)) {
-        while (rsPk.next()) {
-            pkColumnNames.add(rsPk.getString("COLUMN_NAME"));
+import cn.hutool.core.text.csv.CsvData;
+import cn.hutool.core.text.csv.CsvReader;
+import cn.hutool.core.text.csv.CsvRow;
+import cn.hutool.core.text.csv.CsvUtil;
+import cn.hutool.core.util.CharsetUtil;
+
+import java.util.List;
+
+public class CsvReadUtil {
+
+    /**
+     * 读取 CSV 文件并打印内容
+     * @param filePath 文件路径
+     */
+    public static void readCsv(String filePath) {
+        // 1. 初始化 Reader，自动处理双引号转义等复杂情况
+        CsvReader reader = CsvUtil.getReader();
+
+        // 2. 读取数据
+        // 注意：Excel 生成的 CSV 在 Windows 下通常是 GBK 或 UTF-8 BOM，根据实际情况调整编码
+        CsvData data = reader.read(filePath, CharsetUtil.CHARSET_UTF_8);
+        
+        List<CsvRow> rows = data.getRows();
+        
+        // 3. 遍历行
+        for (CsvRow row : rows) {
+            // get(0) 代表第一列，以此类推
+            System.out.println("当前行原始数据: " + row.getRawList());
         }
     }
 
-    // 2. 根据列名获取详细元数据 (DATA_TYPE 等)
-    for (String pkColName : pkColumnNames) {
-        try (ResultSet rsCol = metaData.getColumns(null, null, tableName, pkColName)) {
-            if (rsCol.next()) {
-                int dataType = rsCol.getInt("DATA_TYPE");
-                String typeName = rsCol.getString("TYPE_NAME");
-                int columnSize = rsCol.getInt("COLUMN_SIZE");
-                boolean isNullable = (rsCol.getInt("NULLABLE") == DatabaseMetaData.columnNullable);
-
-                pks.add(new PKMetaDataHolder(dataType, typeName, columnSize, isNullable));
-            }
-        }
+    /**
+     * 将 CSV 直接映射为 Bean（最推荐，最省事）
+     */
+    public static <T> List<T> readCsvToBean(String filePath, Class<T> clazz) {
+        CsvReader reader = CsvUtil.getReader();
+        // 自动将 Header 与 Bean 的属性匹配
+        return reader.read(filePath, CharsetUtil.CHARSET_UTF_8, clazz);
     }
-});
+}
