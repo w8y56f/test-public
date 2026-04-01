@@ -1,19 +1,1 @@
-private HandleItemListReturn runInParallel(String batchExecutionId, List<MaskGcpInputDetail> inputDetailList, ItemStatusQueryReturn itemStatus, RuleSetDTO ruleSetDTO, boolean rollback) {
-    
-    // 1. 将每一个 item 的处理逻辑提交到线程池执行
-    List<CompletableFuture<HandleSingleItemReturn>> futures = inputDetailList.stream()
-            .map(item -> CompletableFuture.supplyAsync(() -> 
-                purgingItemService.handleOneItem(batchExecutionId, item, itemStatus, ruleSetDTO, rollback), 
-                executor) // 使用你现有的线程池
-            )
-            .collect(Collectors.toList());
 
-    // 2. 等待所有线程执行完毕并收集结果
-    // join() 会阻塞直到任务完成，由于 handleOneItem 内部已经处理了异常，这里通常很安全
-    List<HandleSingleItemReturn> itemList = futures.stream()
-            .map(CompletableFuture::join)
-            .collect(Collectors.toList());
-
-    // 3. 构造返回
-    return HandleItemListReturn.genItemListStatus(batchExecutionId, itemList);
-}
