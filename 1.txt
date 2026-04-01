@@ -1,40 +1,19 @@
-import cn.hutool.core.text.csv.CsvData;
-import cn.hutool.core.text.csv.CsvReader;
-import cn.hutool.core.text.csv.CsvRow;
-import cn.hutool.core.text.csv.CsvUtil;
-import cn.hutool.core.util.CharsetUtil;
+private HandleItemListReturn runInParallel(String batchExecutionId, List<MaskGcpInputDetail> inputDetailList, ItemStatusQueryReturn itemStatus, RuleSetDTO ruleSetDTO, boolean rollback) {
+    
+    // 1. 将每一个 item 的处理逻辑提交到线程池执行
+    List<CompletableFuture<HandleSingleItemReturn>> futures = inputDetailList.stream()
+            .map(item -> CompletableFuture.supplyAsync(() -> 
+                purgingItemService.handleOneItem(batchExecutionId, item, itemStatus, ruleSetDTO, rollback), 
+                executor) // 使用你现有的线程池
+            )
+            .collect(Collectors.toList());
 
-import java.util.List;
+    // 2. 等待所有线程执行完毕并收集结果
+    // join() 会阻塞直到任务完成，由于 handleOneItem 内部已经处理了异常，这里通常很安全
+    List<HandleSingleItemReturn> itemList = futures.stream()
+            .map(CompletableFuture::join)
+            .collect(Collectors.toList());
 
-public class CsvReadUtil {
-
-    /**
-     * 读取 CSV 文件并打印内容
-     * @param filePath 文件路径
-     */
-    public static void readCsv(String filePath) {
-        // 1. 初始化 Reader，自动处理双引号转义等复杂情况
-        CsvReader reader = CsvUtil.getReader();
-
-        // 2. 读取数据
-        // 注意：Excel 生成的 CSV 在 Windows 下通常是 GBK 或 UTF-8 BOM，根据实际情况调整编码
-        CsvData data = reader.read(filePath, CharsetUtil.CHARSET_UTF_8);
-        
-        List<CsvRow> rows = data.getRows();
-        
-        // 3. 遍历行
-        for (CsvRow row : rows) {
-            // get(0) 代表第一列，以此类推
-            System.out.println("当前行原始数据: " + row.getRawList());
-        }
-    }
-
-    /**
-     * 将 CSV 直接映射为 Bean（最推荐，最省事）
-     */
-    public static <T> List<T> readCsvToBean(String filePath, Class<T> clazz) {
-        CsvReader reader = CsvUtil.getReader();
-        // 自动将 Header 与 Bean 的属性匹配
-        return reader.read(filePath, CharsetUtil.CHARSET_UTF_8, clazz);
-    }
+    // 3. 构造返回
+    return HandleItemListReturn.genItemListStatus(batchExecutionId, itemList);
 }
