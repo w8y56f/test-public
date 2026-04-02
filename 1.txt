@@ -1,1 +1,9 @@
 
+public static final ExecutorService metadataPool = new ThreadPoolExecutor(
+    10, // corePoolSize: 核心线程数
+    20, // maximumPoolSize: 最大线程数
+    60L, TimeUnit.SECONDS, // keepAliveTime: 非核心线程闲置存活时间
+    new LinkedBlockingQueue<>(100), // workQueue: 任务队列容量
+    new ThreadFactoryBuilder().setNameFormat("data-puring-%d").build(), // threadFactory: 线程工厂
+    new ThreadPoolExecutor.CallerRunsPolicy() // RejectedExecutionHandler: 拒绝策略
+);
