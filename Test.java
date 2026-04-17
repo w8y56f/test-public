@@ -1,20 +1,23 @@
 import org.slf4j.MDC;
+import org.springframework.core.task.TaskDecorator;
 import java.util.Map;
-import java.util.concurrent.Executor;
 
-public class MdcTaskDecorator {
-    public static Runnable wrap(Runnable runnable) {
-        // 1. 从当前线程获取 MDC 内容
+public class MdcTaskDecorator implements TaskDecorator {
+
+    @Override
+    public Runnable decorate(Runnable runnable) {
+        // 1. 此时还在主线程，抓取当前的 MDC 上下文
         Map<String, String> contextMap = MDC.getCopyOfContextMap();
+        
         return () -> {
             try {
-                // 2. 在线程池线程中设置 MDC
+                // 2. 此时已在线程池线程，将上下文设置进去
                 if (contextMap != null) {
                     MDC.setContextMap(contextMap);
                 }
                 runnable.run();
             } finally {
-                // 3. 执行完后必须清除，防止线程复用导致的污染
+                // 3. 必须清除，防止线程池复用导致的 traceId 污染
                 MDC.clear();
             }
         };
@@ -23,14 +26,27 @@ public class MdcTaskDecorator {
 
 
 
+@Configuration
+public class ThreadPoolConfig {
 
-// 在 ThreadPoolConfig 类里，建议定义一个专门用于 MDC 传递的 Executor 包装
-private static final ExecutorService innerPool = new ThreadPoolExecutor(
-    10, 20, 60L, TimeUnit.SECONDS,
-    new LinkedBlockingQueue<>(100),
-    new ThreadFactoryBuilder().setNameFormat("data-puring-%d").build(),
-    new ThreadPoolExecutor.CallerRunsPolicy()
-);
-
-// 最终暴露给外面使用的 metadataPool
-public static final Executor metadataPool = runnable -> innerPool.execute(MdcTaskDecorator.wrap(runnable));
+    @Bean("metadataPool")
+    public ThreadPoolTaskExecutor metadataPool() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        
+        // 基础参数配置（对应你第一张图的参数）
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(20);
+        executor.setQueueCapacity(100);
+        executor.setKeepAliveSeconds(60);
+        executor.setThreadNamePrefix("data-puring-");
+        
+        // 拒绝策略
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        
+        // 注入关键的装饰器
+        executor.setTaskDecorator(new MdcTaskDecorator());
+        
+        executor.initialize();
+        return executor;
+    }
+}
