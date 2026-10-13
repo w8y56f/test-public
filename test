@@ -1,0 +1,12 @@
+python - <<'PY'
+from pathlib import Path
+
+p = Path(r"C:\SWDTOOLS\Python3.6.3_x64\Scripts\adfs-assume.exe")
+data = p.read_bytes()
+
+pos = data.rfind(b'#!')
+if pos >= 0:
+    print(data[pos:pos+300].split(b'\n', 1)[0].decode(errors='replace'))
+else:
+    print("No embedded shebang found")
+PY
