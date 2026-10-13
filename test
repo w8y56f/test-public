@@ -1,12 +1,6 @@
-NEW_ADFS="$(cygpath -u "$APPDATA")/Python/Python312/Scripts/adfs-assume.exe"
-
-"$NEW_ADFS" --help
-
-
-
-
-export PATH="$(cygpath -u "$APPDATA")/Python/Python312/Scripts:$PATH"
-
-hash -r
-
-which adfs-assume
+python - <<'PY'
+from importlib.metadata import requires
+for r in requires("adfs-assume") or []:
+    if "boto" in r.lower():
+        print(r)
+PY
