@@ -1,16 +1,12 @@
-python - <<'PY'
-import site
-import sys
-from pathlib import Path
+NEW_ADFS="$(cygpath -u "$APPDATA")/Python/Python312/Scripts/adfs-assume.exe"
 
-p = Path(site.USER_BASE) / f"Python{sys.version_info.major}{sys.version_info.minor}" / "Scripts" / "adfs-assume.exe"
+"$NEW_ADFS" --help
 
-print("Launcher:", p)
-print("Exists:", p.is_file())
 
-if p.is_file():
-    data = p.read_bytes()
-    pos = data.rfind(b'#!')
-    if pos >= 0:
-        print("Shebang:", data[pos:].split(b'\n', 1)[0].decode(errors='replace'))
-PY
+
+
+export PATH="$(cygpath -u "$APPDATA")/Python/Python312/Scripts:$PATH"
+
+hash -r
+
+which adfs-assume
