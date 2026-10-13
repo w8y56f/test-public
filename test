@@ -1,6 +1,2 @@
-python - <<'PY'
-from importlib.metadata import requires
-for r in requires("adfs-assume") or []:
-    if "boto" in r.lower():
-        print(r)
-PY
+export PATH="$(cygpath -u "$APPDATA")/Python/Python312/Scripts:$PATH"
+hash -r
