@@ -1,12 +1,16 @@
 python - <<'PY'
+import site
+import sys
 from pathlib import Path
 
-p = Path(r"C:\SWDTOOLS\Python3.6.3_x64\Scripts\adfs-assume.exe")
-data = p.read_bytes()
+p = Path(site.USER_BASE) / f"Python{sys.version_info.major}{sys.version_info.minor}" / "Scripts" / "adfs-assume.exe"
 
-pos = data.rfind(b'#!')
-if pos >= 0:
-    print(data[pos:pos+300].split(b'\n', 1)[0].decode(errors='replace'))
-else:
-    print("No embedded shebang found")
+print("Launcher:", p)
+print("Exists:", p.is_file())
+
+if p.is_file():
+    data = p.read_bytes()
+    pos = data.rfind(b'#!')
+    if pos >= 0:
+        print("Shebang:", data[pos:].split(b'\n', 1)[0].decode(errors='replace'))
 PY
